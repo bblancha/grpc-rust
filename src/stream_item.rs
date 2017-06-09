@@ -117,6 +117,27 @@ impl<T : Send + 'static> GrpcStreamWithTrailingMetadata<T> {
         })
     }
 
+    /// Apply `then` operation to items, preserving trailing metadata
+    pub fn then_items<U, F>(self, mut f: F) -> GrpcStreamWithTrailingMetadata<U>
+        where
+            U : Send + 'static,
+            F : FnMut(result::Result<T>) -> U + Send + 'static,
+    {
+        self.map_stream(move |stream| {
+            Box::new(stream.then(move |result| {
+                match result {
+                    Ok(item) => {
+                        match item {
+                            ItemOrMetadata::Item(i) => Ok(ItemOrMetadata::Item(f(Ok(i)))),
+                            ItemOrMetadata::TrailingMetadata(m) => Ok(ItemOrMetadata::TrailingMetadata(m)),
+                        }
+                    },
+                    Err(t) => Err(t),
+                }
+            }))
+        })
+    }
+
     /// Return raw futures `Stream` without trailing metadata
     pub fn drop_metadata(self) -> GrpcStreamSend<T> {
         Box::new(self.0.filter_map(|item| {

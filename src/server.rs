@@ -480,9 +480,9 @@ impl<S : CallStarter> httpbis::Service for GrpcHttpService<S> {
             init_headers.extend(metadata.into_headers());
 
             let s2 = grpc_frames
-                .drop_metadata() // TODO
-                .map(|frame| HttpStreamPart::intermediate_data(Bytes::from(write_grpc_frame_to_vec(&frame))))
-                .then(|result| {
+//                .drop_metadata() // TODO
+                .map_items(|frame| HttpStreamPart::intermediate_data(Bytes::from(write_grpc_frame_to_vec(&frame))))
+                .then_items(|result| {
                     match result {
                         Ok(part) => {
                             let r: Result<_, httpbis::Error> = Ok(part);
@@ -510,7 +510,8 @@ impl<S : CallStarter> httpbis::Service for GrpcHttpService<S> {
                             ))
                     }
                 })
-                .map_err(httpbis::Error::from);
+//                .map_err(httpbis::Error::from);
+                .map_err();
 
             let s3 = stream::once(Ok(HttpStreamPart::last_headers(Headers(vec![
                 Header::new(HEADER_GRPC_STATUS, "0"),
