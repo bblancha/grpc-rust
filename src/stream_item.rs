@@ -2,6 +2,7 @@ use futures::future;
 use futures::future::Future;
 use futures::stream;
 use futures::stream::Stream;
+use futures::Poll;
 
 use futures_grpc::*;
 
@@ -138,6 +139,22 @@ impl<T : Send + 'static> GrpcStreamWithTrailingMetadata<T> {
         })
     }
 
+    /// transform Items and trailing metadata into the same type
+    pub fn normalize_metadata<U, F, H>(self, mut f: F, h: H) -> GrpcStreamSend<U>
+        where
+            U : Send + 'static,
+            F : FnMut(T) -> U + Send + 'static,
+            H : FnMut(Metadata) -> U + Send + 'static,
+    {
+        self.0.map(move |stream| {
+            match stream {
+                ItemOrMetadata::Item(item) => f(item),
+                ItemOrMetadata::TrailingMetadata(trailing) => h(trailing),
+            }
+        })
+        .boxed()
+    }
+
     /// Return raw futures `Stream` without trailing metadata
     pub fn drop_metadata(self) -> GrpcStreamSend<T> {
         Box::new(self.0.filter_map(|item| {
@@ -186,3 +203,4 @@ impl<T : Send + 'static> GrpcStreamWithTrailingMetadata<T> {
     }
 
 }
+
