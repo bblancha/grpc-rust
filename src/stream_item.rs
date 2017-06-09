@@ -2,7 +2,6 @@ use futures::future;
 use futures::future::Future;
 use futures::stream;
 use futures::stream::Stream;
-use futures::Poll;
 
 use futures_grpc::*;
 
@@ -140,7 +139,7 @@ impl<T : Send + 'static> GrpcStreamWithTrailingMetadata<T> {
     }
 
     /// transform Items and trailing metadata into the same type
-    pub fn normalize_metadata<U, F, H>(self, mut f: F, h: H) -> GrpcStreamSend<U>
+    pub fn normalize_metadata<U, F, H>(self, mut f: F, mut h: H) -> GrpcStreamSend<U>
         where
             U : Send + 'static,
             F : FnMut(T) -> U + Send + 'static,

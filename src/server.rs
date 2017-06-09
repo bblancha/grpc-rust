@@ -481,17 +481,14 @@ impl<S : CallStarter> httpbis::Service for GrpcHttpService<S> {
             init_headers.extend(metadata.into_headers());
 
             let s2 = grpc_frames
-//                .drop_metadata() // TODO
                 .map_items(|frame| HttpStreamPart::intermediate_data(Bytes::from(write_grpc_frame_to_vec(&frame))))
                 .then_items(|result| {
                     match result {
                         Ok(part) => {
-                          let r: Result<_, httpbis::Error> = Ok(part);
-                            //let r = Ok(part);
-                            r
+                          part
                         }
                         Err(e) =>
-                            Ok(HttpStreamPart::last_headers(
+                            HttpStreamPart::last_headers(
                                 match e {
                                     Error::GrpcMessage(GrpcMessageError { grpc_status, grpc_message }) => {
                                         Headers(vec![
@@ -509,32 +506,22 @@ impl<S : CallStarter> httpbis::Service for GrpcHttpService<S> {
                                         ])
                                     }
                                 }
-                            ))
+                            )
                     }
                 })
                 .normalize_metadata(
-                |item| {
-//                    match item {
-//                        Ok(i) => i,
-//                        Err(_) => None
-//                    }
-                },
+                |item| { item },
                 |trailing_metadata| {
                     HttpStreamPart::last_headers( {
-                        let headers = Headers(vec![
+                        let mut trailing = Headers(vec![
                             Header::new(HEADER_GRPC_STATUS, "0")
                         ]);
-                        headers.extend(trailing_metadata.into_headers());
-                        headers
+                        trailing.extend(trailing_metadata.into_headers());
+                        trailing
                     })
                 })
                 .map_err(httpbis::Error::from);
 
-//            let s3 = stream::once(Ok(HttpStreamPart::last_headers(Headers(vec![
-//                Header::new(HEADER_GRPC_STATUS, "0"),
-//            ]))));
-
-//            let http_parts = HttpPartStream::new(s2.chain(s3));
             let http_parts = HttpPartStream::new(s2);
 
             (init_headers, http_parts)
