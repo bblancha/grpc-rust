@@ -42,6 +42,18 @@ impl<T : Send + 'static> GrpcStreamWithTrailingMetadata<T> {
         GrpcStreamWithTrailingMetadata::new(stream.map(ItemOrMetadata::Item))
     }
 
+    /// Stream of items with no trailing metadata
+    pub fn stream_with_trailing<S>(stream: S, trailing: GrpcFutureSend<Metadata>) -> GrpcStreamWithTrailingMetadata<T>
+        where S : Stream<Item=T, Error=Error> + Send + 'static
+    {
+        let stream = GrpcStreamWithTrailingMetadata::new(stream.map(ItemOrMetadata::Item));
+        GrpcStreamWithTrailingMetadata::new(stream.0.chain(stream::once(
+            Ok(ItemOrMetadata::TrailingMetadata(
+                trailing.wait().unwrap_or(Metadata::new())
+            ))
+        )))
+    }
+
     /// Single element stream with no trailing metadata
     pub fn once(item: T) -> GrpcStreamWithTrailingMetadata<T> {
         GrpcStreamWithTrailingMetadata::stream(stream::once(Ok(item)))
