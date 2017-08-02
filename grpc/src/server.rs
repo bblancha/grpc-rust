@@ -79,13 +79,14 @@ impl ServerConf {
     }
 }
 
-pub struct ServerBuilder<A : tls_api::TlsAcceptor = tls_api_stub::TlsAcceptor> {
+pub struct ServerBuilder<A : tls_api::TlsAcceptor = tls_api_stub::TlsAcceptor>
+{
     pub http: httpbis::ServerBuilder<A>,
     pub conf: ServerConf,
 }
 
 impl ServerBuilder<tls_api_stub::TlsAcceptor> {
-    pub fn new_plain() -> ServerBuilder {
+    pub fn new_plain() -> ServerBuilder<tls_api_stub::TlsAcceptor> {
         ServerBuilder::new()
     }
 }
@@ -123,7 +124,8 @@ impl<A : tls_api::TlsAcceptor> ServerBuilder<A> {
 }
 
 
-pub struct Server {
+pub struct Server
+{
     server: httpbis::Server,
 }
 
