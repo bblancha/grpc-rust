@@ -158,7 +158,7 @@ fn main() {
     env_logger::init().expect("env_logger::init");
 
     let mut server = ServerBuilder::new_plain();
-    server.http.set_port(DEFAULT_PORT);
+    server.http.set_unix_addr("/tmp/grpc_interop".to_owned()).unwrap();
     server.add_service(TestServiceServer::new_service_def(TestServerImpl {}));
     let _server = server.build().expect("server");
 
